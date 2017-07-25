@@ -1,2 +1,2 @@
-# jushii.github.io
-Personal website
+# Jussi Tuomi's website
+Under construction :)
