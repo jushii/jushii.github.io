@@ -34,7 +34,7 @@ hr {
 #self-portrait {
   /*float: right;*/
   min-width: 100px;
-  max-width: 300px;
+  max-width: 200px;
   margin-top: 25px;
   margin-bottom: 25px;
   border-radius: 50%;
@@ -126,6 +126,15 @@ h2 {
 
 .primary-background {
   background: #56a79a;
+}
+
+.social-icons {
+  font-size: 32px;
+  margin-top: 32px;
+}
+
+a i {
+  color: #4c4c4c;
 }
 
 #main-header {
