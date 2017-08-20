@@ -1,2 +1,2 @@
 # Jussi Tuomi's website
-Under construction :)
+https://jushii.github.io
