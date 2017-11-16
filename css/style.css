@@ -276,6 +276,13 @@ a i {
   padding: 10px 0;
 }
 
+#events {
+  /*background: #0a0a0a;*/
+  background: #fff;
+  color: #515151;
+  padding: 10px 0;
+}
+
 #company h4 {
   text-transform: uppercase;
   margin-bottom: 0;
