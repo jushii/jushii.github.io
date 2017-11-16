@@ -70,18 +70,19 @@ hr {
     position: absolute;
     top: 0;
     color: black;
-    background-color:rgba(255,255,255,0.8);
+    background-color:rgba(255,255,255,0.95);
     width: 100%;
     height: 100%;
     padding: 8px;
+    font-size: 12px;
     line-height: 1.5em;
     text-align: justify;
     z-index: 10;
     opacity: 0;
-    -webkit-transition: all 0.5s ease;
-    -moz-transition: all 0.5s ease;
-    -o-transition: all 0.5s ease;
-    transition: all 0.5s ease;
+    -webkit-transition: all 0.35s ease;
+    -moz-transition: all 0.35s ease;
+    -o-transition: all 0.35s ease;
+    transition: all 0.35s ease;
 }
 .description-text:hover {
     opacity:1;
@@ -241,6 +242,10 @@ a i {
   color: #888;
   margin: 0;
   margin-bottom: 40px;
+}
+
+#item-details {
+  font-size: 12px;
 }
 
 #features .fa {
