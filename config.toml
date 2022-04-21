@@ -2,6 +2,7 @@ baseURL = 'jushii.github.io'
 languageCode = 'en-us'
 title = "jussituomi.com"
 theme = "PaperMod"
+publishDir = "docs"
 
 [params]
 ShowShareButtons = true
