@@ -1,4 +1,4 @@
-baseURL = 'jushii.github.io'
+baseURL = 'https://jushii.github.io'
 languageCode = 'en-us'
 title = "jussituomi.com"
 theme = "PaperMod"
