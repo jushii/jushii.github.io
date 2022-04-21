@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
-    <title>jussituomi.com</title>
-    <link>https://jushii.github.io/</link>
-    <description>Recent content on jussituomi.com</description>
+    <title>Posts on jussituomi.com</title>
+    <link>https://jushii.github.io/posts/</link>
+    <description>Recent content in Posts on jussituomi.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 22 Apr 2022 00:02:06 +0700</lastBuildDate><atom:link href="https://jushii.github.io/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 22 Apr 2022 00:02:06 +0700</lastBuildDate><atom:link href="https://jushii.github.io/posts/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Async FSM using UniTask</title>
       <link>https://jushii.github.io/posts/async-fsm-unitask/</link>
@@ -17,7 +17,6 @@
 You can follow along or hop directly to my GitHub to explore the repository which contains the full project.
 Requirements  Unity 2020.2+ UniTask  I recommend installing UniTask via git URL using Unity&amp;rsquo;s package manager.</description>
     </item>
-    
     
   </channel>
 </rss>
