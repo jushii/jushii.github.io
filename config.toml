@@ -1,0 +1,55 @@
+baseURL = 'http://example.org/'
+languageCode = 'en-us'
+title = "jussituomi.com"
+theme = "PaperMod"
+
+[params]
+ShowShareButtons = true
+ShowReadingTime = true
+ShowToc = true
+ShowCodeCopyButtons = true
+Comments = true
+
+[params.homeInfoParams]
+Title = "Hi! 👋"
+Content = """\
+.. and welcome to my website! My name is Jussi Tuomi and I'm a programmer and a game developer from Finland. I specialize in Unity and C#.
+Right now I'm working on [Zecha Tactics](https://twitter.com/zechatactics), a turn-based RPG inspired by 80s and 90s mecha anime 🤖.
+My interests are learning, reading, video games, starting too many new prototypes and going traveling sometimes. 🗺️
+"""
+
+[[params.socialIcons]]
+name = "twitter"
+url = "https://www.twitter.com/jushiip"
+
+[[params.socialIcons]]
+name = "github"
+url = "https://www.github.com/jushii"
+
+[[params.socialIcons]]
+name = "linkedin"
+url = "https://www.linkedin.com/in/jussituomi"
+
+[[menu.main]]
+identifier = "about"
+name = "about"
+url = "/"
+weight = 10
+
+[[menu.main]]
+identifier = "posts"
+name = "posts"
+url = "/posts/"
+weight = 20
+
+[[menu.main]]
+identifier = "tags"
+name = "tags"
+url = "/tags/"
+weight = 30
+
+[[menu.main]]
+identifier = "archives"
+name = "archives"
+url = "/archives/"
+weight = 40
