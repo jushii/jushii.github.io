@@ -6,11 +6,13 @@ author: ["Jussi Tuomi"]
 draft: false
 ---
 
-In this post I'm going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library [UniTask](https://github.com/Cysharp/UniTask). In the end you will have a nice modular state machine with all the FSM stuff you would expect.
+## Introduction
+
+In this post I'm going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library [UniTask](https://github.com/Cysharp/UniTask). In the end you will have a nice modular state machine with all the FSM stuff you would expect. We'll also take a look on how we can run update or fixed update logic independently of monobehaviours / gameobjects.
 
 You can follow along or hop directly to my GitHub to explore the [repository](https://github.com/jushii/AsyncFSM) which contains the full project.
 
-## Requirements
+### Requirements
 - Unity 2020.2+
 - UniTask
 
@@ -61,8 +63,7 @@ public interface IState
 }
 ```
 
-Next, let's implement the members of `IState` to the `State<T>` class. If you're wondering about `await UniTask.Yield()`, it's the UniTask's replacement for `yield return null`. We'll
-make the methods virtual so our derived states can override only the methods they need. Also, don't forget the `async` keyword.
+Next, let's implement the members of `IState` to the `State<T>` class. If you're wondering about `await UniTask.Yield()`, it's the UniTask's replacement for `yield return null`. We'll make the methods virtual so our derived states can override only the methods they need. Also, don't forget the `async` keyword.
 
 ```cs
 using Cysharp.Threading.Tasks;
@@ -155,8 +156,7 @@ public class StateMachine
 }
 ```
 
-We create a dictionary to keep track of registered states. If you dislike using `Type` as the dictionary key, you could as well use a `string` or an `enum` of your choice.
-We'll also create a queue for keeping track of the requested state transitions.
+We create a dictionary to keep track of registered states. If you dislike using `Type` as the dictionary key, you could as well use a `string` or an `enum` of your choice. We'll also create a queue for keeping track of the requested state transitions.
 
 Now it's time to add in some methods. First add in a method for registering new states.
 
@@ -169,8 +169,7 @@ public void RegisterState(IState state)
 }
 ```
 
-We create two methods for requesting transitions. When a transition is requested it will added into a
-queue. The queue will be processed in our state machine's update loop.
+We create two methods for requesting transitions. When a transition is requested it will added into a queue. The queue will be processed in our state machine's update loop.
 
 ```cs
 public void RequestTransition(Type stateType)
@@ -192,9 +191,7 @@ private async UniTask ChangeTo<T>(Type stateType, T options) where T : Options
 }
 ```
 
-We'll implement a typical FSM-style transition where we first exit the current state (if any) and
-then enter the next state. Keeping track of the current state as we do this. You'll probably want to include better validation for certain things.
-For now let's just throw an exception if we try to transition to a state which is not registered to our state machine.
+We'll implement a typical FSM-style transition where we first exit the current state (if any) and then enter the next state. Keeping track of the current state as we do this. You'll probably want to include better validation for certain things. For now let's just throw an exception if we try to transition to a state which is not registered to our state machine.
 
 ```cs
 private async UniTask ChangeTo<T>(Type stateType, T options) where T : Options
@@ -267,8 +264,7 @@ public class StateMachine
     ...
 ```
 
-When we call `Run` to start the state machine we create a new `CancellationTokenSource` and fire up our async `Update()` method. To actually use the
-token we have to provide it using the `WithCancellation` method.
+When we call `Run` to start the state machine we create a new `CancellationTokenSource` and fire up our async `Update()` method. To actually use the token we have to provide it using the `WithCancellation` method.
 
 ```cs
 public void Run()
@@ -288,8 +284,7 @@ private async void Update()
 }
 ```
 
-To stop the state machine from running we call `Cancel` on the cancellation token source to request a cancellation of the enumerator. We
-will also dispose the cancellation token source.
+To stop the state machine from running we call `Cancel` on the cancellation token source to request a cancellation of the enumerator. We will also dispose the cancellation token source.
 
 ```cs
 public void Stop()
@@ -320,99 +315,93 @@ private async void Update()
 
 ## Examples
 
-Alright, let's put our state machine to test by implementing a very simple example. In this example we have a state machine running independently
-of `MonoBehaviour`. You can of course have the state machine be a member of a monobehaviour or use it in any other way. This is just a quick way to 
-show a very basic example.
+Let's put the state machine to test by implementing a very basic example. We will create a state machine that has two states and we'll also test out a transition between those states. In this example our state machine is running independently of `MonoBehaviour`. You can of course have the state machine be a member of a class that is derived from monobehaviour or use it in any other way you like.
 
-Create three classes `Example`, `ExampleState` and `ExampleStateWithOptions`.
+Create the following classes: `Example`, `ExampleState`, `ExampleStateWithOptions` and `ExampleStateOptions`.
 
-```cs
-using Cysharp.Threading.Tasks;
-using UnityEngine;
-
-namespace AsyncFSM.Examples
-{
-    public class ExampleState : State
-    {
-        public override async UniTask OnEnter()
-        {
-            Debug.Log("Entering ExampleState! Waiting 2 seconds before changing state.");
-
-            await UniTask.Delay(2000);
-
-            var options = new ExampleStateOptions
-            {
-                text = "Hello world!"
-            };
-
-            StateMachine.RequestTransition(typeof(ExampleStateWithOptions), options);
-        }
-
-        public override async UniTask OnExit()
-        {
-            Debug.Log("Exiting ExampleState!");
-
-            await UniTask.Yield();
-        }
-
-        public override void OnUpdate()
-        {
-            // This is never called because we request a transition in OnEnter.       
-            Debug.Log("Calling OnUpdate in ExampleState!");
-        }
-    }
-}
-```
+`ExampleState` is a basic state with no options. We'll request a transition after a 2 second delay. You'll notice that `OnUpdate` never gets called because we request the transition already inside the `OnEnter` method.
 
 ```cs
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
-namespace AsyncFSM.Examples
+public class ExampleState : State
 {
-    public class ExampleStateOptions : Options
+    public override async UniTask OnEnter()
     {
-        public string text;
+        Debug.Log("Entering ExampleState! Waiting 2 seconds before changing state.");
+
+        await UniTask.Delay(2000);
+
+        var options = new ExampleStateOptions
+        {
+            text = "Hello world!"
+        };
+
+        StateMachine.RequestTransition(typeof(ExampleStateWithOptions), options);
     }
 
-    public class ExampleStateWithOptions : State<ExampleStateOptions>
+    public override async UniTask OnExit()
     {
-        public override async UniTask OnEnter()
-        {
-            Debug.Log($"Entering ExampleStateWithOptions. Here's our options text: {Options.text}");
+        Debug.Log("Exiting ExampleState!");
 
-            await UniTask.Yield();
-        }
+        await UniTask.Yield();
+    }
 
-        public override void OnUpdate()
-        {
-            Debug.Log($"realTimeSinceStartup: {Time.realtimeSinceStartup}, frameCount:{Time.frameCount}");
-        }
+    public override void OnUpdate()
+    {
+        // This is never called because we request a transition in OnEnter.       
+        Debug.Log("Calling OnUpdate in ExampleState!");
     }
 }
 ```
+
+`ExampleStateWithOptions` uses a custom options container. You'll notice that the options are already initialized when we enter the `OnEnter` method. Options are a great way for some state-specific initialization which you might want to run before the `OnUpdate` method is called.
+
+```cs
+using Cysharp.Threading.Tasks;
+using UnityEngine;
+
+public class ExampleStateOptions : Options
+{
+    public string text;
+}
+
+public class ExampleStateWithOptions : State<ExampleStateOptions>
+{
+    public override async UniTask OnEnter()
+    {
+        Debug.Log($"Entering ExampleStateWithOptions. Here's our options text: {Options.text}");
+
+        await UniTask.Yield();
+    }
+
+    public override void OnUpdate()
+    {
+        Debug.Log($"realTimeSinceStartup: {Time.realtimeSinceStartup}, frameCount:{Time.frameCount}");
+    }
+}
+```
+
+In `Example` class we'll create a new state machine, create and register 2 states, request a transition to the initial state and call `Run` to start the state machine.
 
 ```cs
 using UnityEngine;
 
-namespace AsyncFSM.Examples
+public static class Example
 {
-    public static class Example
-    {
-        private static StateMachine _stateMachine;
+    private static StateMachine _stateMachine;
 
-        [RuntimeInitializeOnLoadMethod]
-        private static void Initialize()
-        {
-            _stateMachine = new StateMachine();
-            _stateMachine.RegisterState(new ExampleState());
-            _stateMachine.RegisterState(new ExampleStateWithOptions());
-            _stateMachine.RequestTransition(typeof(ExampleState));
-            _stateMachine.Run();
-        }
+    [RuntimeInitializeOnLoadMethod]
+    private static void Initialize()
+    {
+        _stateMachine = new StateMachine();
+        _stateMachine.RegisterState(new ExampleState());
+        _stateMachine.RegisterState(new ExampleStateWithOptions());
+        _stateMachine.RequestTransition(typeof(ExampleState));
+        _stateMachine.Run();
     }
 }
-
 ```
 
-Now if you hit play in Unity and take a look at the console, you should see the state machine in action!
+Now, if you hit play in Unity and take a look at the console, you should see the state machine in action!
