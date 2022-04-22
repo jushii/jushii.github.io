@@ -1,7 +1,7 @@
 baseURL = 'https://jushii.github.io'
 languageCode = 'en-us'
 title = "jussituomi.com"
-theme = "PaperMod"
+theme = "papermod"
 publishDir = "docs"
 
 [params]
@@ -10,6 +10,10 @@ ShowReadingTime = true
 ShowToc = true
 ShowCodeCopyButtons = true
 Comments = true
+ShowFullTextinRSS = true
+
+[outputs]
+home = [ "HTML", "RSS", "JSON" ]
 
 [params.homeInfoParams]
 Title = "Hi! 👋"
@@ -30,6 +34,10 @@ url = "https://www.github.com/jushii"
 [[params.socialIcons]]
 name = "linkedin"
 url = "https://www.linkedin.com/in/jussituomi"
+
+[[params.socialIcons]]
+name = "rss"
+url = "https://www.jussituomi.com/index.xml"
 
 [[menu.main]]
 identifier = "about"
