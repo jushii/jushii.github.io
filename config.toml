@@ -1,7 +1,7 @@
 baseURL = 'https://www.jussituomi.com'
 languageCode = 'en-us'
 title = "jussituomi.com"
-theme = "papermod"
+theme = "PaperMod"
 publishDir = "docs"
 
 [params]

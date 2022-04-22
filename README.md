@@ -1,2 +1,2 @@
-# Jussi Tuomi's website
-https://jushii.github.io
+# My personal website
+https://www.jussituomi.com
