@@ -1,3 +1,604 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>unitask on jussituomi.com</title><link>https://jushii.github.io/tags/unitask/</link><description>Recent content in unitask on jussituomi.com</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Fri, 22 Apr 2022 00:02:06 +0700</lastBuildDate><atom:link href="https://jushii.github.io/tags/unitask/index.xml" rel="self" type="application/rss+xml"/><item><title>Async FSM using UniTask</title><link>https://jushii.github.io/posts/async-fsm-unitask/</link><pubDate>Fri, 22 Apr 2022 00:02:06 +0700</pubDate><guid>https://jushii.github.io/posts/async-fsm-unitask/</guid><description>In this post I&amp;rsquo;m going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library UniTask. In the end you will have a nice modular state machine with all the FSM stuff you would expect.
-You can follow along or hop directly to my GitHub to explore the repository which contains the full project.
-Requirements Unity 2020.2+ UniTask I recommend installing UniTask via git URL using Unity&amp;rsquo;s package manager.</description></item></channel></rss>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>unitask on jussituomi.com</title><link>https://www.jussituomi.com/tags/unitask/</link><description>Recent content in unitask on jussituomi.com</description><generator>Hugo -- gohugo.io</generator><language>en-us</language><lastBuildDate>Fri, 22 Apr 2022 00:02:06 +0700</lastBuildDate><atom:link href="https://www.jussituomi.com/tags/unitask/index.xml" rel="self" type="application/rss+xml"/><item><title>Async FSM using UniTask</title><link>https://www.jussituomi.com/posts/async-fsm-unitask/</link><pubDate>Fri, 22 Apr 2022 00:02:06 +0700</pubDate><guid>https://www.jussituomi.com/posts/async-fsm-unitask/</guid><description>&lt;h2 id="introduction">Introduction&lt;/h2>
+&lt;p>In this post I&amp;rsquo;m going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library &lt;a href="https://github.com/Cysharp/UniTask">UniTask&lt;/a>. In the end you will have a nice modular state machine with all the FSM stuff you would expect. We&amp;rsquo;ll also take a look on how we can run update or fixed update logic independently of monobehaviours / gameobjects.&lt;/p>
+&lt;p>You can follow along or hop directly to my GitHub to explore the &lt;a href="https://github.com/jushii/AsyncFSM">repository&lt;/a> which contains the full project.&lt;/p>
+&lt;h3 id="requirements">Requirements&lt;/h3>
+&lt;ul>
+&lt;li>Unity 2020.2+&lt;/li>
+&lt;li>UniTask&lt;/li>
+&lt;/ul>
+&lt;p>I recommend installing UniTask &lt;a href="https://github.com/Cysharp/UniTask#install-via-git-url">via git URL&lt;/a> using Unity&amp;rsquo;s package manager.&lt;/p>
+&lt;h2 id="states">States&lt;/h2>
+&lt;p>Alright, let&amp;rsquo;s start with the states. We create an interface &lt;code>IState&lt;/code> and three abstract classes: &lt;code>State&lt;/code>, &lt;code>State&amp;lt;T&amp;gt;&lt;/code> and &lt;code>Options&lt;/code>. &lt;code>State&lt;/code> and &lt;code>State&amp;lt;T&amp;gt;&lt;/code> are the base classes for all state implementations and &lt;code>Options&lt;/code> can be used as a container for custom properties when transitioning to a new state.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> &lt;span style="color:#a6e22e">IState&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">abstract&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">State&lt;/span> : State&amp;lt;Options&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">abstract&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">State&lt;/span>&amp;lt;T&amp;gt; : IState &lt;span style="color:#66d9ef">where&lt;/span> T : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">abstract&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">Options&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The &lt;code>IState&lt;/code> interface contains the blueprint of our state. States know which state machine they belong to and they&amp;rsquo;ll use that reference to request state transitions. The &lt;code>OnEnter&lt;/code> and &lt;code>OnExit&lt;/code> methods will return an &lt;code>UniTask&lt;/code> struct which makes them awaitable. Keep in mind that their implementations will require the &lt;code>async&lt;/code> keyword.&lt;/p>
+&lt;p>The &lt;code>SetOptions&lt;/code> method will be called each time we do a state transition. The state machine supports states with and without options.&lt;/p>
+&lt;p>To keep things simple we add in only one update method: &lt;code>OnUpdate&lt;/code>. Later I&amp;rsquo;ll introduce you to the &lt;em>true power&lt;/em> 😱 of UniTask and show how easily you can hook in to different timings in Unity&amp;rsquo;s player loop. You can even inject your own player loop timings to the state machine.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> Cysharp.Threading.Tasks;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">interface&lt;/span> &lt;span style="color:#a6e22e">IState&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> StateMachine StateMachine { &lt;span style="color:#66d9ef">get&lt;/span>; &lt;span style="color:#66d9ef">set&lt;/span>; }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> UniTask OnEnter();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> UniTask OnExit();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">void&lt;/span> SetOptions(Options options);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">void&lt;/span> OnUpdate();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Next, let&amp;rsquo;s implement the members of &lt;code>IState&lt;/code> to the &lt;code>State&amp;lt;T&amp;gt;&lt;/code> class. If you&amp;rsquo;re wondering about &lt;code>await UniTask.Yield()&lt;/code>, it&amp;rsquo;s the UniTask&amp;rsquo;s replacement for &lt;code>yield return null&lt;/code>. We&amp;rsquo;ll make the methods virtual so our derived states can override only the methods they need. Also, don&amp;rsquo;t forget the &lt;code>async&lt;/code> keyword.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> Cysharp.Threading.Tasks;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">abstract&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">State&lt;/span> : State&amp;lt;Options&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">abstract&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">State&lt;/span>&amp;lt;T&amp;gt; : IState &lt;span style="color:#66d9ef">where&lt;/span> T : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> T Options { &lt;span style="color:#66d9ef">get&lt;/span>; &lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">set&lt;/span>; }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">virtual&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> UniTask OnEnter()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> UniTask.Yield();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">virtual&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> UniTask OnExit()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> UniTask.Yield();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> SetOptions(Options options)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> (options &lt;span style="color:#66d9ef">is&lt;/span> T stateOptions)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Options = stateOptions;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">virtual&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> OnUpdate()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="transitions">Transitions&lt;/h2>
+&lt;p>For handling state transitions we&amp;rsquo;ll create two classes: &lt;code>Transition&lt;/code> and &lt;code>Transition&amp;lt;T&amp;gt;&lt;/code>.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">Transition&lt;/span> : Transition&amp;lt;Options&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">abstract&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">Transition&lt;/span>&amp;lt;T&amp;gt; &lt;span style="color:#66d9ef">where&lt;/span> T : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>A transition needs the state &lt;code>Type&lt;/code> so we know to which state we want to transition in to. We can also provide &lt;code>Options&lt;/code> which can be used for setting up state properties before the state&amp;rsquo;s &lt;code>OnEnter()&lt;/code> method is called.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> System;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">Transition&lt;/span> : Transition&amp;lt;Options&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> Transition(Type type, Options options) : &lt;span style="color:#66d9ef">base&lt;/span>(type, options)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">abstract&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">Transition&lt;/span>&amp;lt;T&amp;gt; &lt;span style="color:#66d9ef">where&lt;/span> T : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> Type Type { &lt;span style="color:#66d9ef">get&lt;/span>; }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> T Options { &lt;span style="color:#66d9ef">get&lt;/span>; }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">protected&lt;/span> Transition(Type type, T options)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Type = type;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Options = options;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="implementing-the-state-machine">Implementing the state machine&lt;/h2>
+&lt;p>Now let&amp;rsquo;s create the &lt;code>StateMachine&lt;/code> class and add in some members.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> System;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> System.Collections.Generic;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> Cysharp.Threading.Tasks;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">StateMachine&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> IState &lt;span style="color:#ae81ff">_&lt;/span>currentState;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> IState &lt;span style="color:#ae81ff">_&lt;/span>previousState;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">readonly&lt;/span> Dictionary&amp;lt;Type, IState&amp;gt; &lt;span style="color:#ae81ff">_&lt;/span>states = &lt;span style="color:#66d9ef">new&lt;/span>();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">readonly&lt;/span> Queue&amp;lt;Transition&amp;gt; &lt;span style="color:#ae81ff">_&lt;/span>pendingTransitions = &lt;span style="color:#66d9ef">new&lt;/span>();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>We create a dictionary to keep track of registered states. If you dislike using &lt;code>Type&lt;/code> as the dictionary key, you could as well use a &lt;code>string&lt;/code> or an &lt;code>enum&lt;/code> of your choice. We&amp;rsquo;ll also create a queue for keeping track of the requested state transitions.&lt;/p>
+&lt;p>Now it&amp;rsquo;s time to add in some methods. First add in a method for registering new states.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> RegisterState(IState state)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> state.StateMachine = &lt;span style="color:#66d9ef">this&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>states.Add(state.GetType(), state);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>We create two methods for requesting transitions. When a transition is requested it will added into a queue. The queue will be processed in our state machine&amp;rsquo;s update loop.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> RequestTransition(Type stateType)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>pendingTransitions.Enqueue(&lt;span style="color:#66d9ef">new&lt;/span> Transition(stateType, &lt;span style="color:#66d9ef">null&lt;/span>));
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> RequestTransition&amp;lt;T&amp;gt;(Type stateType, T options) &lt;span style="color:#66d9ef">where&lt;/span> T : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>pendingTransitions.Enqueue(&lt;span style="color:#66d9ef">new&lt;/span> Transition(stateType, options));
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>The &lt;code>ChangeTo&lt;/code> method will be responsible of handling a transition. We&amp;rsquo;ll again return a &lt;code>UniTask&lt;/code> struct so we can await for it&amp;rsquo;s completion.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> UniTask ChangeTo&amp;lt;T&amp;gt;(Type stateType, T options) &lt;span style="color:#66d9ef">where&lt;/span> T : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>We&amp;rsquo;ll implement a typical FSM-style transition where we first exit the current state (if any) and then enter the next state. Keeping track of the current state as we do this. You&amp;rsquo;ll probably want to include better validation for certain things. For now let&amp;rsquo;s just throw an exception if we try to transition to a state which is not registered to our state machine.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> UniTask ChangeTo&amp;lt;T&amp;gt;(Type stateType, T options) &lt;span style="color:#66d9ef">where&lt;/span> T : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> (&lt;span style="color:#ae81ff">_&lt;/span>currentState != &lt;span style="color:#66d9ef">null&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>previousState = &lt;span style="color:#ae81ff">_&lt;/span>currentState;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> &lt;span style="color:#ae81ff">_&lt;/span>previousState.OnExit();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>currentState = &lt;span style="color:#66d9ef">null&lt;/span>;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">if&lt;/span> (&lt;span style="color:#ae81ff">_&lt;/span>states.TryGetValue(stateType, &lt;span style="color:#66d9ef">out&lt;/span> IState nextState))
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> nextState.SetOptions(options);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>currentState = nextState;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> nextState.OnEnter();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">else&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">throw&lt;/span> &lt;span style="color:#66d9ef">new&lt;/span> Exception(&lt;span style="color:#e6db74">$&amp;#34;State: {stateType.Name} is not registered to state machine.&amp;#34;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="the-async-update-loop">The async update loop&lt;/h2>
+&lt;p>This is where things get somewhat interesting. &lt;a href="https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8">Async enumerables&lt;/a> is a C# 8.0 feature which, using UniTask, allows us to use a new update notation that lets us to inject our code directly into Unity&amp;rsquo;s &lt;code>PlayerLoop&lt;/code>, breaking us free from the shackles of &lt;code>MonoBehaviour&lt;/code>.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Update()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> &lt;span style="color:#66d9ef">foreach&lt;/span> (&lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#ae81ff">_&lt;/span> &lt;span style="color:#66d9ef">in&lt;/span> UniTaskAsyncEnumerable.EveryUpdate())
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Using &lt;code>UniTaskAsyncEnumerable&lt;/code> we can emulate the &lt;code>Update()&lt;/code> method of the &lt;code>MonoBehaviour&lt;/code> component in a pure C# class. This is very powerful and useful for many other things besides this state machine. You can read more about async enumerables in the context of Unity and UniTask in the &lt;a href="https://github.com/Cysharp/UniTask#asyncenumerable-and-async-linq">UniTask repository&lt;/a>.&lt;/p>
+&lt;p>By default &lt;code>EveryUpdate&lt;/code> uses &lt;code>PlayerLoopTiming.Update&lt;/code> but you can easily change it to something else (for example to &lt;code>PlayerLoopTiming.FixedUpdate&lt;/code>). For this example we&amp;rsquo;re only going to implement a standard &lt;code>Update&lt;/code> loop.&lt;/p>
+&lt;p>Everything looks good so far, but before we continue with the update loop let&amp;rsquo;s discuss how we can actually start and stop the update. Let&amp;rsquo;s create methods called &lt;code>Run()&lt;/code> and &lt;code>Stop()&lt;/code>.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Run()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Stop()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>To stop the state machine from running we need a &lt;code>CancellationToken&lt;/code>. So let&amp;rsquo;s add in a field for cancellation token source to our state machine class. We provide this token to the &lt;code>UniTaskAsyncEnumerable&lt;/code> in our update loop. The token is used to request the cancellation of the enumerator.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> System;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> System.Collections.Generic;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> System.Threading;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> Cysharp.Threading.Tasks;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> Cysharp.Threading.Tasks.Linq;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">StateMachine&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> IState &lt;span style="color:#ae81ff">_&lt;/span>currentState;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> IState &lt;span style="color:#ae81ff">_&lt;/span>previousState;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">readonly&lt;/span> Dictionary&amp;lt;Type, IState&amp;gt; &lt;span style="color:#ae81ff">_&lt;/span>states = &lt;span style="color:#66d9ef">new&lt;/span>();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">readonly&lt;/span> Queue&amp;lt;Transition&amp;gt; &lt;span style="color:#ae81ff">_&lt;/span>pendingTransitions = &lt;span style="color:#66d9ef">new&lt;/span>();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> CancellationTokenSource &lt;span style="color:#ae81ff">_&lt;/span>cancellationTokenSource;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ...
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>When we call &lt;code>Run&lt;/code> to start the state machine we create a new &lt;code>CancellationTokenSource&lt;/code> and fire up our async &lt;code>Update()&lt;/code> method. To actually use the token we have to provide it using the &lt;code>WithCancellation&lt;/code> method.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Run()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>cancellationTokenSource = &lt;span style="color:#66d9ef">new&lt;/span>();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Update();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Update()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> &lt;span style="color:#66d9ef">foreach&lt;/span> (&lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#ae81ff">_&lt;/span> &lt;span style="color:#66d9ef">in&lt;/span> UniTaskAsyncEnumerable
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> .EveryUpdate()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> .WithCancellation(&lt;span style="color:#ae81ff">_&lt;/span>cancellationToken.Token))
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>To stop the state machine from running we call &lt;code>Cancel&lt;/code> on the cancellation token source to request a cancellation of the enumerator. We will also dispose the cancellation token source.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Stop()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>cancellationTokenSource.Cancel();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>cancellationTokenSource.Dispose();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Now the only things remaining are to actually process the transition queue and calling the &lt;code>OnUpdate()&lt;/code> method of the current state.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Update()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> &lt;span style="color:#66d9ef">foreach&lt;/span> (&lt;span style="color:#66d9ef">var&lt;/span> &lt;span style="color:#ae81ff">_&lt;/span> &lt;span style="color:#66d9ef">in&lt;/span> UniTaskAsyncEnumerable
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> .EveryUpdate()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> .WithCancellation(&lt;span style="color:#ae81ff">_&lt;/span>cancellationToken.Token))
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">while&lt;/span> (&lt;span style="color:#ae81ff">_&lt;/span>pendingTransitions.Count &amp;gt; &lt;span style="color:#ae81ff">0&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">var&lt;/span> transition = &lt;span style="color:#ae81ff">_&lt;/span>pendingTransitions.Dequeue();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> ChangeTo(transition.Type, transition.Options);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>currentState?.OnUpdate();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h2 id="examples">Examples&lt;/h2>
+&lt;p>Let&amp;rsquo;s put the state machine to test by implementing a very basic example. We will create a state machine that has two states and we&amp;rsquo;ll also test out a transition between those states. In this example our state machine is running independently of &lt;code>MonoBehaviour&lt;/code>. You can of course have the state machine be a member of a class that is derived from monobehaviour or use it in any other way you like.&lt;/p>
+&lt;p>Create the following classes: &lt;code>Example&lt;/code>, &lt;code>ExampleState&lt;/code>, &lt;code>ExampleStateWithOptions&lt;/code> and &lt;code>ExampleStateOptions&lt;/code>.&lt;/p>
+&lt;p>&lt;code>ExampleState&lt;/code> is a basic state with no options. We&amp;rsquo;ll request a transition after a 2 second delay. You&amp;rsquo;ll notice that &lt;code>OnUpdate&lt;/code> never gets called because we request the transition already inside the &lt;code>OnEnter&lt;/code> method.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> Cysharp.Threading.Tasks;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> UnityEngine;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">ExampleState&lt;/span> : State
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">override&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> UniTask OnEnter()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Debug.Log(&lt;span style="color:#e6db74">&amp;#34;Entering ExampleState! Waiting 2 seconds before changing state.&amp;#34;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> UniTask.Delay(&lt;span style="color:#ae81ff">2000&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">var&lt;/span> options = &lt;span style="color:#66d9ef">new&lt;/span> ExampleStateOptions
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> text = &lt;span style="color:#e6db74">&amp;#34;Hello world!&amp;#34;&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> };
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> StateMachine.RequestTransition(&lt;span style="color:#66d9ef">typeof&lt;/span>(ExampleStateWithOptions), options);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">override&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> UniTask OnExit()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Debug.Log(&lt;span style="color:#e6db74">&amp;#34;Exiting ExampleState!&amp;#34;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> UniTask.Yield();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">override&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> OnUpdate()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#75715e">// This is never called because we request a transition in OnEnter. &lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Debug.Log(&lt;span style="color:#e6db74">&amp;#34;Calling OnUpdate in ExampleState!&amp;#34;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;code>ExampleStateWithOptions&lt;/code> uses a custom options container. You&amp;rsquo;ll notice that the options are already initialized when we enter the &lt;code>OnEnter&lt;/code> method. Options are a great way for some state-specific initialization which you might want to run before the &lt;code>OnUpdate&lt;/code> method is called.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> Cysharp.Threading.Tasks;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> UnityEngine;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">ExampleStateOptions&lt;/span> : Options
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">string&lt;/span> text;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">ExampleStateWithOptions&lt;/span> : State&amp;lt;ExampleStateOptions&amp;gt;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">override&lt;/span> &lt;span style="color:#66d9ef">async&lt;/span> UniTask OnEnter()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Debug.Log(&lt;span style="color:#e6db74">$&amp;#34;Entering ExampleStateWithOptions. Here&amp;#39;s our options text: {Options.text}&amp;#34;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">await&lt;/span> UniTask.Yield();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">override&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> OnUpdate()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> Debug.Log(&lt;span style="color:#e6db74">$&amp;#34;realTimeSinceStartup: {Time.realtimeSinceStartup}, frameCount:{Time.frameCount}&amp;#34;&lt;/span>);
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>In &lt;code>Example&lt;/code> class we&amp;rsquo;ll create a new state machine, create and register 2 states, request a transition to the initial state and call &lt;code>Run&lt;/code> to start the state machine.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-cs" data-lang="cs">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">using&lt;/span> UnityEngine;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#66d9ef">public&lt;/span> &lt;span style="color:#66d9ef">static&lt;/span> &lt;span style="color:#66d9ef">class&lt;/span> &lt;span style="color:#a6e22e">Example&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>{
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">static&lt;/span> StateMachine &lt;span style="color:#ae81ff">_&lt;/span>stateMachine;
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">
+&lt;/span>&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e"> [RuntimeInitializeOnLoadMethod]&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#66d9ef">private&lt;/span> &lt;span style="color:#66d9ef">static&lt;/span> &lt;span style="color:#66d9ef">void&lt;/span> Initialize()
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> {
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>stateMachine = &lt;span style="color:#66d9ef">new&lt;/span> StateMachine();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>stateMachine.RegisterState(&lt;span style="color:#66d9ef">new&lt;/span> ExampleState());
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>stateMachine.RegisterState(&lt;span style="color:#66d9ef">new&lt;/span> ExampleStateWithOptions());
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>stateMachine.RequestTransition(&lt;span style="color:#66d9ef">typeof&lt;/span>(ExampleState));
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#ae81ff">_&lt;/span>stateMachine.Run();
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> }
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>}
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Now, if you hit play in Unity and take a look at the console, you should see the state machine in action!&lt;/p></description><content:encoded><![CDATA[<h2 id="introduction">Introduction</h2>
+<p>In this post I&rsquo;m going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library <a href="https://github.com/Cysharp/UniTask">UniTask</a>. In the end you will have a nice modular state machine with all the FSM stuff you would expect. We&rsquo;ll also take a look on how we can run update or fixed update logic independently of monobehaviours / gameobjects.</p>
+<p>You can follow along or hop directly to my GitHub to explore the <a href="https://github.com/jushii/AsyncFSM">repository</a> which contains the full project.</p>
+<h3 id="requirements">Requirements</h3>
+<ul>
+<li>Unity 2020.2+</li>
+<li>UniTask</li>
+</ul>
+<p>I recommend installing UniTask <a href="https://github.com/Cysharp/UniTask#install-via-git-url">via git URL</a> using Unity&rsquo;s package manager.</p>
+<h2 id="states">States</h2>
+<p>Alright, let&rsquo;s start with the states. We create an interface <code>IState</code> and three abstract classes: <code>State</code>, <code>State&lt;T&gt;</code> and <code>Options</code>. <code>State</code> and <code>State&lt;T&gt;</code> are the base classes for all state implementations and <code>Options</code> can be used as a container for custom properties when transitioning to a new state.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">IState</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">State</span> : State&lt;Options&gt;
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">State</span>&lt;T&gt; : IState <span style="color:#66d9ef">where</span> T : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Options</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The <code>IState</code> interface contains the blueprint of our state. States know which state machine they belong to and they&rsquo;ll use that reference to request state transitions. The <code>OnEnter</code> and <code>OnExit</code> methods will return an <code>UniTask</code> struct which makes them awaitable. Keep in mind that their implementations will require the <code>async</code> keyword.</p>
+<p>The <code>SetOptions</code> method will be called each time we do a state transition. The state machine supports states with and without options.</p>
+<p>To keep things simple we add in only one update method: <code>OnUpdate</code>. Later I&rsquo;ll introduce you to the <em>true power</em> 😱 of UniTask and show how easily you can hook in to different timings in Unity&rsquo;s player loop. You can even inject your own player loop timings to the state machine.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> Cysharp.Threading.Tasks;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">interface</span> <span style="color:#a6e22e">IState</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    StateMachine StateMachine { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">set</span>; }
+</span></span><span style="display:flex;"><span>    UniTask OnEnter();
+</span></span><span style="display:flex;"><span>    UniTask OnExit();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> SetOptions(Options options);
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">void</span> OnUpdate();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Next, let&rsquo;s implement the members of <code>IState</code> to the <code>State&lt;T&gt;</code> class. If you&rsquo;re wondering about <code>await UniTask.Yield()</code>, it&rsquo;s the UniTask&rsquo;s replacement for <code>yield return null</code>. We&rsquo;ll make the methods virtual so our derived states can override only the methods they need. Also, don&rsquo;t forget the <code>async</code> keyword.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> Cysharp.Threading.Tasks;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">State</span> : State&lt;Options&gt;
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">State</span>&lt;T&gt; : IState <span style="color:#66d9ef">where</span> T : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> T Options { <span style="color:#66d9ef">get</span>; <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">set</span>; }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">async</span> UniTask OnEnter()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> UniTask.Yield();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">async</span> UniTask OnExit()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> UniTask.Yield();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> SetOptions(Options options)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">if</span> (options <span style="color:#66d9ef">is</span> T stateOptions)
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            Options = stateOptions;
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">virtual</span> <span style="color:#66d9ef">void</span> OnUpdate()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="transitions">Transitions</h2>
+<p>For handling state transitions we&rsquo;ll create two classes: <code>Transition</code> and <code>Transition&lt;T&gt;</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Transition</span> : Transition&lt;Options&gt;
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Transition</span>&lt;T&gt; <span style="color:#66d9ef">where</span> T : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>A transition needs the state <code>Type</code> so we know to which state we want to transition in to. We can also provide <code>Options</code> which can be used for setting up state properties before the state&rsquo;s <code>OnEnter()</code> method is called.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> System;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Transition</span> : Transition&lt;Options&gt;
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> Transition(Type type, Options options) : <span style="color:#66d9ef">base</span>(type, options)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">abstract</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Transition</span>&lt;T&gt; <span style="color:#66d9ef">where</span> T : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> Type Type { <span style="color:#66d9ef">get</span>; }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> T Options { <span style="color:#66d9ef">get</span>; }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">protected</span> Transition(Type type, T options)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        Type = type;
+</span></span><span style="display:flex;"><span>        Options = options;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="implementing-the-state-machine">Implementing the state machine</h2>
+<p>Now let&rsquo;s create the <code>StateMachine</code> class and add in some members.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> System;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> System.Collections.Generic;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> Cysharp.Threading.Tasks;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">StateMachine</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> IState <span style="color:#ae81ff">_</span>currentState;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> IState <span style="color:#ae81ff">_</span>previousState;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> Dictionary&lt;Type, IState&gt; <span style="color:#ae81ff">_</span>states = <span style="color:#66d9ef">new</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> Queue&lt;Transition&gt; <span style="color:#ae81ff">_</span>pendingTransitions = <span style="color:#66d9ef">new</span>();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>We create a dictionary to keep track of registered states. If you dislike using <code>Type</code> as the dictionary key, you could as well use a <code>string</code> or an <code>enum</code> of your choice. We&rsquo;ll also create a queue for keeping track of the requested state transitions.</p>
+<p>Now it&rsquo;s time to add in some methods. First add in a method for registering new states.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> RegisterState(IState state)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    state.StateMachine = <span style="color:#66d9ef">this</span>;
+</span></span><span style="display:flex;"><span>    
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>states.Add(state.GetType(), state);
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>We create two methods for requesting transitions. When a transition is requested it will added into a queue. The queue will be processed in our state machine&rsquo;s update loop.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> RequestTransition(Type stateType)
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>pendingTransitions.Enqueue(<span style="color:#66d9ef">new</span> Transition(stateType, <span style="color:#66d9ef">null</span>));
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> RequestTransition&lt;T&gt;(Type stateType, T options) <span style="color:#66d9ef">where</span> T : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>pendingTransitions.Enqueue(<span style="color:#66d9ef">new</span> Transition(stateType, options));
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The <code>ChangeTo</code> method will be responsible of handling a transition. We&rsquo;ll again return a <code>UniTask</code> struct so we can await for it&rsquo;s completion.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">private</span> <span style="color:#66d9ef">async</span> UniTask ChangeTo&lt;T&gt;(Type stateType, T options) <span style="color:#66d9ef">where</span> T : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>We&rsquo;ll implement a typical FSM-style transition where we first exit the current state (if any) and then enter the next state. Keeping track of the current state as we do this. You&rsquo;ll probably want to include better validation for certain things. For now let&rsquo;s just throw an exception if we try to transition to a state which is not registered to our state machine.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">private</span> <span style="color:#66d9ef">async</span> UniTask ChangeTo&lt;T&gt;(Type stateType, T options) <span style="color:#66d9ef">where</span> T : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#ae81ff">_</span>currentState != <span style="color:#66d9ef">null</span>)
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>previousState = <span style="color:#ae81ff">_</span>currentState;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> <span style="color:#ae81ff">_</span>previousState.OnExit();
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>currentState = <span style="color:#66d9ef">null</span>;
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">if</span> (<span style="color:#ae81ff">_</span>states.TryGetValue(stateType, <span style="color:#66d9ef">out</span> IState nextState))
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        nextState.SetOptions(options);
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>currentState = nextState;
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> nextState.OnEnter();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">else</span>
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">throw</span> <span style="color:#66d9ef">new</span> Exception(<span style="color:#e6db74">$&#34;State: {stateType.Name} is not registered to state machine.&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="the-async-update-loop">The async update loop</h2>
+<p>This is where things get somewhat interesting. <a href="https://docs.microsoft.com/en-us/archive/msdn-magazine/2019/november/csharp-iterating-with-async-enumerables-in-csharp-8">Async enumerables</a> is a C# 8.0 feature which, using UniTask, allows us to use a new update notation that lets us to inject our code directly into Unity&rsquo;s <code>PlayerLoop</code>, breaking us free from the shackles of <code>MonoBehaviour</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">private</span> <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">void</span> Update()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> <span style="color:#ae81ff">_</span> <span style="color:#66d9ef">in</span> UniTaskAsyncEnumerable.EveryUpdate())
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Using <code>UniTaskAsyncEnumerable</code> we can emulate the <code>Update()</code> method of the <code>MonoBehaviour</code> component in a pure C# class. This is very powerful and useful for many other things besides this state machine. You can read more about async enumerables in the context of Unity and UniTask in the <a href="https://github.com/Cysharp/UniTask#asyncenumerable-and-async-linq">UniTask repository</a>.</p>
+<p>By default <code>EveryUpdate</code> uses <code>PlayerLoopTiming.Update</code> but you can easily change it to something else (for example to <code>PlayerLoopTiming.FixedUpdate</code>). For this example we&rsquo;re only going to implement a standard <code>Update</code> loop.</p>
+<p>Everything looks good so far, but before we continue with the update loop let&rsquo;s discuss how we can actually start and stop the update. Let&rsquo;s create methods called <code>Run()</code> and <code>Stop()</code>.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> Run()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> Stop()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>To stop the state machine from running we need a <code>CancellationToken</code>. So let&rsquo;s add in a field for cancellation token source to our state machine class. We provide this token to the <code>UniTaskAsyncEnumerable</code> in our update loop. The token is used to request the cancellation of the enumerator.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> System;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> System.Collections.Generic;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> System.Threading;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> Cysharp.Threading.Tasks;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> Cysharp.Threading.Tasks.Linq;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">StateMachine</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> IState <span style="color:#ae81ff">_</span>currentState;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> IState <span style="color:#ae81ff">_</span>previousState;
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> Dictionary&lt;Type, IState&gt; <span style="color:#ae81ff">_</span>states = <span style="color:#66d9ef">new</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">readonly</span> Queue&lt;Transition&gt; <span style="color:#ae81ff">_</span>pendingTransitions = <span style="color:#66d9ef">new</span>();
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> CancellationTokenSource <span style="color:#ae81ff">_</span>cancellationTokenSource;
+</span></span><span style="display:flex;"><span>    ...
+</span></span></code></pre></div><p>When we call <code>Run</code> to start the state machine we create a new <code>CancellationTokenSource</code> and fire up our async <code>Update()</code> method. To actually use the token we have to provide it using the <code>WithCancellation</code> method.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> Run()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>cancellationTokenSource = <span style="color:#66d9ef">new</span>();
+</span></span><span style="display:flex;"><span>    Update();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">private</span> <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">void</span> Update()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> <span style="color:#ae81ff">_</span> <span style="color:#66d9ef">in</span> UniTaskAsyncEnumerable
+</span></span><span style="display:flex;"><span>    .EveryUpdate()
+</span></span><span style="display:flex;"><span>    .WithCancellation(<span style="color:#ae81ff">_</span>cancellationToken.Token))
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>To stop the state machine from running we call <code>Cancel</code> on the cancellation token source to request a cancellation of the enumerator. We will also dispose the cancellation token source.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> Stop()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>cancellationTokenSource.Cancel();
+</span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>cancellationTokenSource.Dispose();
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Now the only things remaining are to actually process the transition queue and calling the <code>OnUpdate()</code> method of the current state.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">private</span> <span style="color:#66d9ef">async</span> <span style="color:#66d9ef">void</span> Update()
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">await</span> <span style="color:#66d9ef">foreach</span> (<span style="color:#66d9ef">var</span> <span style="color:#ae81ff">_</span> <span style="color:#66d9ef">in</span> UniTaskAsyncEnumerable
+</span></span><span style="display:flex;"><span>    .EveryUpdate()
+</span></span><span style="display:flex;"><span>    .WithCancellation(<span style="color:#ae81ff">_</span>cancellationToken.Token))
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">while</span> (<span style="color:#ae81ff">_</span>pendingTransitions.Count &gt; <span style="color:#ae81ff">0</span>)
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">var</span> transition = <span style="color:#ae81ff">_</span>pendingTransitions.Dequeue();
+</span></span><span style="display:flex;"><span>            <span style="color:#66d9ef">await</span> ChangeTo(transition.Type, transition.Options);
+</span></span><span style="display:flex;"><span>        }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>currentState?.OnUpdate();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><h2 id="examples">Examples</h2>
+<p>Let&rsquo;s put the state machine to test by implementing a very basic example. We will create a state machine that has two states and we&rsquo;ll also test out a transition between those states. In this example our state machine is running independently of <code>MonoBehaviour</code>. You can of course have the state machine be a member of a class that is derived from monobehaviour or use it in any other way you like.</p>
+<p>Create the following classes: <code>Example</code>, <code>ExampleState</code>, <code>ExampleStateWithOptions</code> and <code>ExampleStateOptions</code>.</p>
+<p><code>ExampleState</code> is a basic state with no options. We&rsquo;ll request a transition after a 2 second delay. You&rsquo;ll notice that <code>OnUpdate</code> never gets called because we request the transition already inside the <code>OnEnter</code> method.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> Cysharp.Threading.Tasks;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> UnityEngine;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ExampleState</span> : State
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> UniTask OnEnter()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        Debug.Log(<span style="color:#e6db74">&#34;Entering ExampleState! Waiting 2 seconds before changing state.&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> UniTask.Delay(<span style="color:#ae81ff">2000</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">var</span> options = <span style="color:#66d9ef">new</span> ExampleStateOptions
+</span></span><span style="display:flex;"><span>        {
+</span></span><span style="display:flex;"><span>            text = <span style="color:#e6db74">&#34;Hello world!&#34;</span>
+</span></span><span style="display:flex;"><span>        };
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        StateMachine.RequestTransition(<span style="color:#66d9ef">typeof</span>(ExampleStateWithOptions), options);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> UniTask OnExit()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        Debug.Log(<span style="color:#e6db74">&#34;Exiting ExampleState!&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> UniTask.Yield();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">void</span> OnUpdate()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#75715e">// This is never called because we request a transition in OnEnter.       </span>
+</span></span><span style="display:flex;"><span>        Debug.Log(<span style="color:#e6db74">&#34;Calling OnUpdate in ExampleState!&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p><code>ExampleStateWithOptions</code> uses a custom options container. You&rsquo;ll notice that the options are already initialized when we enter the <code>OnEnter</code> method. Options are a great way for some state-specific initialization which you might want to run before the <code>OnUpdate</code> method is called.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> Cysharp.Threading.Tasks;
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">using</span> UnityEngine;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ExampleStateOptions</span> : Options
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">string</span> text;
+</span></span><span style="display:flex;"><span>}
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">ExampleStateWithOptions</span> : State&lt;ExampleStateOptions&gt;
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">async</span> UniTask OnEnter()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        Debug.Log(<span style="color:#e6db74">$&#34;Entering ExampleStateWithOptions. Here&#39;s our options text: {Options.text}&#34;</span>);
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#66d9ef">await</span> UniTask.Yield();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">public</span> <span style="color:#66d9ef">override</span> <span style="color:#66d9ef">void</span> OnUpdate()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        Debug.Log(<span style="color:#e6db74">$&#34;realTimeSinceStartup: {Time.realtimeSinceStartup}, frameCount:{Time.frameCount}&#34;</span>);
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>In <code>Example</code> class we&rsquo;ll create a new state machine, create and register 2 states, request a transition to the initial state and call <code>Run</code> to start the state machine.</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-cs" data-lang="cs"><span style="display:flex;"><span><span style="color:#66d9ef">using</span> UnityEngine;
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">class</span> <span style="color:#a6e22e">Example</span>
+</span></span><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">static</span> StateMachine <span style="color:#ae81ff">_</span>stateMachine;
+</span></span><span style="display:flex;"><span><span style="color:#a6e22e">
+</span></span></span><span style="display:flex;"><span><span style="color:#a6e22e">    [RuntimeInitializeOnLoadMethod]</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#66d9ef">private</span> <span style="color:#66d9ef">static</span> <span style="color:#66d9ef">void</span> Initialize()
+</span></span><span style="display:flex;"><span>    {
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>stateMachine = <span style="color:#66d9ef">new</span> StateMachine();
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>stateMachine.RegisterState(<span style="color:#66d9ef">new</span> ExampleState());
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>stateMachine.RegisterState(<span style="color:#66d9ef">new</span> ExampleStateWithOptions());
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>stateMachine.RequestTransition(<span style="color:#66d9ef">typeof</span>(ExampleState));
+</span></span><span style="display:flex;"><span>        <span style="color:#ae81ff">_</span>stateMachine.Run();
+</span></span><span style="display:flex;"><span>    }
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Now, if you hit play in Unity and take a look at the console, you should see the state machine in action!</p>
+]]></content:encoded></item></channel></rss>
