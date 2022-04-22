@@ -2,17 +2,17 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/">
   <channel>
     <title>unity on jussituomi.com</title>
-    <link>https://jushii.github.io/tags/unity/</link>
+    <link>https://www.jussituomi.com/tags/unity/</link>
     <description>Recent content in unity on jussituomi.com</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 22 Apr 2022 00:02:06 +0700</lastBuildDate><atom:link href="https://jushii.github.io/tags/unity/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 22 Apr 2022 00:02:06 +0700</lastBuildDate><atom:link href="https://www.jussituomi.com/tags/unity/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Async FSM using UniTask</title>
-      <link>https://jushii.github.io/posts/async-fsm-unitask/</link>
+      <link>https://www.jussituomi.com/posts/async-fsm-unitask/</link>
       <pubDate>Fri, 22 Apr 2022 00:02:06 +0700</pubDate>
       
-      <guid>https://jushii.github.io/posts/async-fsm-unitask/</guid>
+      <guid>https://www.jussituomi.com/posts/async-fsm-unitask/</guid>
       <description>&lt;p&gt;In this post I&amp;rsquo;m going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library &lt;a href=&#34;https://github.com/Cysharp/UniTask&#34;&gt;UniTask&lt;/a&gt;. In the end you will have a nice modular state machine with all the FSM stuff you would expect.&lt;/p&gt;
 &lt;p&gt;You can follow along or hop directly to my GitHub to explore the &lt;a href=&#34;https://github.com/jushii/AsyncFSM&#34;&gt;repository&lt;/a&gt; which contains the full project.&lt;/p&gt;
 &lt;h2 id=&#34;requirements&#34;&gt;Requirements&lt;/h2&gt;
