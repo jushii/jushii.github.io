@@ -177,7 +177,7 @@ public void RequestTransition(Type stateType)
     _pendingTransitions.Enqueue(new Transition(stateType, null));
 }
 
-public void RequestTransition<T>(Type stateType, T options) where T : eOptions
+public void RequestTransition<T>(Type stateType, T options) where T : Options
 {
     _pendingTransitions.Enqueue(new Transition(stateType, options));
 }

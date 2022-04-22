@@ -140,7 +140,7 @@
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ae81ff&#34;&gt;_&lt;/span&gt;pendingTransitions.Enqueue(&lt;span style=&#34;color:#66d9ef&#34;&gt;new&lt;/span&gt; Transition(stateType, &lt;span style=&#34;color:#66d9ef&#34;&gt;null&lt;/span&gt;));
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
-&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt; RequestTransition&amp;lt;T&amp;gt;(Type stateType, T options) &lt;span style=&#34;color:#66d9ef&#34;&gt;where&lt;/span&gt; T : eOptions
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;public&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;void&lt;/span&gt; RequestTransition&amp;lt;T&amp;gt;(Type stateType, T options) &lt;span style=&#34;color:#66d9ef&#34;&gt;where&lt;/span&gt; T : Options
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;{
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#ae81ff&#34;&gt;_&lt;/span&gt;pendingTransitions.Enqueue(&lt;span style=&#34;color:#66d9ef&#34;&gt;new&lt;/span&gt; Transition(stateType, options));
 &lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
@@ -443,7 +443,7 @@
 </span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>pendingTransitions.Enqueue(<span style="color:#66d9ef">new</span> Transition(stateType, <span style="color:#66d9ef">null</span>));
 </span></span><span style="display:flex;"><span>}
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> RequestTransition&lt;T&gt;(Type stateType, T options) <span style="color:#66d9ef">where</span> T : eOptions
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">public</span> <span style="color:#66d9ef">void</span> RequestTransition&lt;T&gt;(Type stateType, T options) <span style="color:#66d9ef">where</span> T : Options
 </span></span><span style="display:flex;"><span>{
 </span></span><span style="display:flex;"><span>    <span style="color:#ae81ff">_</span>pendingTransitions.Enqueue(<span style="color:#66d9ef">new</span> Transition(stateType, options));
 </span></span><span style="display:flex;"><span>}
