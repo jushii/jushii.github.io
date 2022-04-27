@@ -8,7 +8,7 @@ draft: false
 
 ## Introduction
 
-In this post I'm going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library [UniTask](https://github.com/Cysharp/UniTask). In the end you will have a nice modular state machine with all the FSM stuff you would expect. We'll also take a look on how we can run update or fixed update logic independently of monobehaviours / gameobjects.
+In this post I'm going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library [UniTask](https://github.com/Cysharp/UniTask). In the end you'll have a nice modular state machine with all the usual stuff you would expect to find in a FMS. We'll also take a look on how we can run update loops independently of monobehaviours / gameobjects.
 
 You can follow along or hop directly to my GitHub to explore the [repository](https://github.com/jushii/AsyncFSM) which contains the full project.
 
@@ -44,7 +44,7 @@ public abstract class Options
 }
 ```
 
-The `IState` interface contains the blueprint of our state. States know which state machine they belong to and they'll use that reference to request state transitions. The `OnEnter` and `OnExit` methods will return an `UniTask` struct which makes them awaitable. Keep in mind that their implementations will require the `async` keyword.
+The `IState` interface contains the blueprint of our state. States know which state machine they belong to and they'll use that reference to request state transitions. The `OnEnter` and `OnExit` methods will both return `UniTask` struct which makes them awaitable.
 
 The `SetOptions` method will be called each time we do a state transition. The state machine supports states with and without options.
 
@@ -63,7 +63,7 @@ public interface IState
 }
 ```
 
-Next, let's implement the members of `IState` to the `State<T>` class. If you're wondering about `await UniTask.Yield()`, it's the UniTask's replacement for `yield return null`. We'll make the methods virtual so our derived states can override only the methods they need. Also, don't forget the `async` keyword.
+Next, let's implement the members of `IState` to the `State<T>` class. If you're wondering about `await UniTask.Yield()`, it's the UniTask's replacement for `yield return null`. We'll make the methods virtual so our derived states can override only the methods they need.
 
 ```cs
 using Cysharp.Threading.Tasks;
