@@ -8,7 +8,7 @@ draft: false
 
 ## Introduction
 
-In this post I'm going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library [UniTask](https://github.com/Cysharp/UniTask). In the end you'll have a nice modular state machine with all the usual stuff you would expect to find in a FMS. We'll also take a look on how we can run update loops independently of monobehaviours / gameobjects.
+In this post I'm going through steps to implement an asynchronous finite-state machine (FSM) in Unity, using async/await library [UniTask](https://github.com/Cysharp/UniTask). In the end you'll have a nice modular state machine with all the usual stuff you would expect to find in a FMS. We'll also take a look at how we can run update loops independently of monobehaviours / gameobjects.
 
 You can follow along or hop directly to my GitHub to explore the [repository](https://github.com/jushii/AsyncFSM) which contains the full project.
 
